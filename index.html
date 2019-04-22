@@ -17,6 +17,41 @@
 <pre><code class="language-klipse">
 (require '[reagent.core :as r])
 </code></pre>
+<pre><code class="language-klipse">
+(def board-width 12)
+(def board-height 12)
+(def num-mines 18)
+
+(def rand-positions
+  (shuffle
+   (for [i (range board-width)
+         j (range board-height)]
+     [i j])))
+</code></pre>
+
+<pre><code class="language-klipse">
+(def mines
+  (loop [squares (repeat num-mines 1)]
+    (if (= (count squares) (* board-width board-height))
+      squares
+      (recur (conj squares 0)))))
+</code></pre>
+
+<pre><code class="language-klipse">
+(def minefield
+  (into {}
+        (map vector
+             rand-positions
+             mines)))
+</code></pre>
+<pre><code class="language-klipse">
+(def app-state
+  (r/atom
+   {:matrix minefield
+    :stepped []
+    :game-status :in-progress
+    :message "Tread lightly..."}))
+</code></pre>
 Rendered reagent component:
 <pre><code class="language-reagent">
 (defn eatme [food]
