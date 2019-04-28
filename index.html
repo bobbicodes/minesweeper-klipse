@@ -37,9 +37,6 @@
            squares
            mines)))
 
-(defn mine? [x y]
-  (= 1 (minefield [x y])))
-
 (defn mine-detector [x y]
   (+ (minefield [(dec x) (dec y)])
      (minefield [x (dec y)])
@@ -94,7 +91,7 @@
     :x (+ 0.05 x)
     :y (+ 0.05 y)
     :on-click
-    (fn blank-click [e]
+    (fn click-square [e]
         (step! x y))}])
 
 (defn render-board []
