@@ -32,10 +32,7 @@
          (repeat (- (count squares) num-mines) 0))))
 
 (def minefield
-  (into {}
-      (map vector
-           squares
-           mines)))
+  (into {} (map vector squares mines)))
 
 (defn mine-detector [x y]
   (+ (minefield [(dec x) (dec y)])
@@ -69,8 +66,7 @@
     :y (+ 0.72 y) :height 1
     :text-anchor "middle"
     :font-size 0.6}
-   (if (zero? (mine-detector x y))
-     ""
+   (if (not= 0 (mine-detector x y))
      (str (mine-detector x y)))])
 
 (defn mine [x y]
