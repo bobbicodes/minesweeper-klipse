@@ -34,23 +34,38 @@
 (def minefield
   (into {} (map vector squares mines)))
 
-(defn mine-detector [x y]
-  (+ (minefield [(dec x) (dec y)])
-     (minefield [x (dec y)])
-     (minefield [(inc x) (dec y)])
-     (minefield [(inc x) y])
-     (minefield [(inc x) (inc y)])
-     (minefield [x (inc y)])
-     (minefield [(dec x) (inc y)])
-     (minefield [(dec x) y])))
-
 (def app-state
   (r/atom
-   {:stepped []}))
+   {:matrix minefield
+    :stepped []
+    :game-status :in-progress
+    :message "Tread lightly..."}))
 
 (defn step! [x y]
   (swap! app-state assoc-in [:stepped]
          (conj (:stepped @app-state) [x y])))
+
+(defn mine-detector [x y]
+  (+ ((:matrix @app-state) [(dec x) (dec y)])
+     ((:matrix @app-state) [x (dec y)])
+     ((:matrix @app-state) [(inc x) (dec y)])
+     ((:matrix @app-state) [(inc x) y])
+     ((:matrix @app-state) [(inc x) (inc y)])
+     ((:matrix @app-state) [x (inc y)])
+     ((:matrix @app-state) [(dec x) (inc y)])
+     ((:matrix @app-state) [(dec x) y])))
+
+(defn valid-square? [[x y]]
+  (and (<= 0 x (dec board-width))
+       (<= 0 y (dec board-width))))
+
+(defn filter-squares [[x y]]
+  (filter valid-square? (distinct (:stepped @app-state))))
+
+(defn win? []
+  (= num-mines
+     (-  (* board-height board-width)
+         (count (filter-squares (:stepped @app-state))))))
 
 (defn rect-cell [x y]
   [:rect.cell
@@ -88,7 +103,14 @@
     :y (+ 0.05 y)
     :on-click
     (fn click-square [e]
-        (step! x y))}])
+        (when (= (:game-status @app-state) :in-progress)
+        (step! x y)
+        (if (win?)
+          (do (swap! app-state assoc :game-status :win)
+            (swap! app-state assoc :message "Congratulations!")))
+        (if (= 1 (minefield [x y]))
+          (do (swap! app-state assoc :game-status :dead)
+            (swap! app-state assoc :message "Fuck. You blew up.")))))}])
 
 (defn render-board []
   (into
@@ -101,10 +123,24 @@
      [:g
       [rect-cell x y]
       (if (some #{[x y]} (:stepped @app-state))
-        (if (= 1 (minefield [x y]))
+        (if (= 1 ((:matrix @app-state) [x y]))
           [mine x y]
           [text-cell x y])
         [covered x y])])))
+
+(defn minesweeper []
+  [:center
+   [:h1 (:message @app-state)]
+   [:button
+    {:on-click
+     (fn reset-click [e]
+       (swap! app-state assoc
+              :matrix minefield
+              :message "Welcome back"
+              :game-status :in-progress
+              :stepped []))}
+    "Reset"]
+   [:div [render-board]]])
 </code></pre>
 
 <pre><code class="language-reagent">
