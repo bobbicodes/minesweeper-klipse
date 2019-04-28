@@ -16,12 +16,51 @@
 <h2>
 <pre><code class="language-klipse">
 (require '[reagent.core :as r])
+
+(def board-width 12)
+(def board-height 12)
+(def num-mines 18)
+
+(def rand-positions
+  (shuffle
+(for [i (range board-width)
+      j (range board-height)]
+  [i j])))
+
+(def mines
+  (loop [squares (repeat num-mines 1)]
+    (if (= (count squares) (* board-width board-height))
+      squares
+      (recur (conj squares 0)))))
+
+(def minefield
+  (into {}
+      (map vector
+           rand-positions
+           mines)))
+
+(defn rect-cell [x y]
+  [:rect.cell
+   {:x (+ 0.05 x) :width 0.9
+    :y (+ 0.05 y) :height 0.9
+    :fill "white"
+    :stroke-width 0.025
+    :stroke "black"}])
+
+(defn render-board []
+  (into
+   [:svg.board
+    {:view-box (str "0 0 " board-width " " board-height)
+     :shape-rendering "auto"
+     :style {:max-height "500px"}}]
+   (for [i (range board-width)
+         j (range board-height)]
+     [:g
+      [rect-cell i j]])))
 </code></pre>
 
 <pre><code class="language-reagent">
-(defn eatme [food]
-  [:p (str "Eat me, " food "!")])
-[eatme "pizza"]
+[render-board]
 </code></pre>
 </h2>
 <script src="https://storage.googleapis.com/app.klipse.tech/plugin/js/klipse_plugin.js"></script>
