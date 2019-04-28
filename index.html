@@ -21,27 +21,23 @@
 (def board-height 12)
 (def num-mines 18)
 
-(def rand-positions
-  (shuffle
-   (for [i (range board-width)
-         j (range board-height)]
-     [i j])))
+(def squares
+   (for [x (range board-width)
+         y (range board-height)]
+     [x y]))
 
 (def mines
-  (loop [squares (repeat num-mines 1)]
-    (if (= (count squares) (* board-width board-height))
-      squares
-      (recur (conj squares 0)))))
+  (shuffle
+   (into (repeat num-mines 1)
+         (repeat (- (count squares) num-mines) 0))))
 
 (def minefield
-  (into {}
-      (map vector
-           rand-positions
-           mines)))
+  (into {} (map vector squares mines)))
 
 (def app-state
   (r/atom
-   {:stepped []}))
+   {:matrix minefield
+    :stepped []}))
 
 (defn step! [x y]
   (swap! app-state assoc-in [:stepped]
@@ -74,7 +70,7 @@
     :y (+ 0.05 y)
     :on-click
     (fn blank-click [e]
-        (step! x y))}])
+      (step! x y))}])
 
 (defn render-board []
   (into
