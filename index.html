@@ -39,6 +39,14 @@
            rand-positions
            mines)))
 
+(def app-state
+  (r/atom
+   {:stepped []}))
+
+(defn step! [x y]
+  (swap! app-state assoc-in [:stepped]
+         (conj (:stepped @app-state) [x y])))
+
 (defn rect-cell [x y]
   [:rect.cell
    {:x (+ 0.05 x) :width 0.9
@@ -57,6 +65,17 @@
    [:line {:x1 -1 :y1 -1 :x2 1 :y2 1}]
    [:line {:x1 1 :y1 -1 :x2 -1 :y2 1}]])
 
+(defn covered [x y]
+  [:rect
+   {:width 0.9
+    :height 0.9
+    :fill "grey"
+    :x (+ 0.05 x)
+    :y (+ 0.05 y)
+    :on-click
+    (fn blank-click [e]
+        (step! x y))}])
+
 (defn render-board []
   (into
    [:svg.board
@@ -67,8 +86,10 @@
          j (range board-height)]
      [:g
       [rect-cell i j]
-      (if (= 1 (minefield [i j]))
-          [mine i j])])))
+      (if (some #{[i j]} (:stepped @app-state))
+        (if (= 1 (minefield [i j]))
+          [mine i j])
+        [covered i j])])))
 </code></pre>
 
 <pre><code class="language-reagent">
