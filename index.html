@@ -21,23 +21,34 @@
 (def board-height 12)
 (def num-mines 18)
 
-(def rand-positions
-  (shuffle
-   (for [i (range board-width)
-         j (range board-height)]
-     [i j])))
+(def squares
+   (for [x (range board-width)
+         y (range board-height)]
+     [x y]))
 
 (def mines
-  (loop [squares (repeat num-mines 1)]
-    (if (= (count squares) (* board-width board-height))
-      squares
-      (recur (conj squares 0)))))
+  (shuffle
+   (into (repeat num-mines 1)
+         (repeat (- (count squares) num-mines) 0))))
 
 (def minefield
   (into {}
       (map vector
-           rand-positions
+           squares
            mines)))
+
+(defn mine? [x y]
+  (= 1 (minefield [x y])))
+
+(defn mine-detector [x y]
+  (+ (minefield [(dec x) (dec y)])
+     (minefield [x (dec y)])
+     (minefield [(inc x) (dec y)])
+     (minefield [(inc x) y])
+     (minefield [(inc x) (inc y)])
+     (minefield [x (inc y)])
+     (minefield [(dec x) (inc y)])
+     (minefield [(dec x) y])))
 
 (def app-state
   (r/atom
@@ -55,12 +66,22 @@
     :stroke-width 0.025
     :stroke "black"}])
 
-(defn mine [i j]
+(defn text-cell [x y]
+  [:text
+   {:x (+ 0.5 x) :width 1
+    :y (+ 0.72 y) :height 1
+    :text-anchor "middle"
+    :font-size 0.6}
+   (if (zero? (mine-detector x y))
+     ""
+     (str (mine-detector x y)))])
+
+(defn mine [x y]
   [:g {:stroke "darkred"
        :stroke-width 0.4
        :stroke-linecap "round"
        :transform
-       (str "translate(" (+ 0.5 i) "," (+ 0.5 j) ") "
+       (str "translate(" (+ 0.5 x) "," (+ 0.5 y) ") "
             "scale(0.3)")}
    [:line {:x1 -1 :y1 -1 :x2 1 :y2 1}]
    [:line {:x1 1 :y1 -1 :x2 -1 :y2 1}]])
@@ -82,14 +103,15 @@
     {:view-box (str "0 0 " board-width " " board-height)
      :shape-rendering "auto"
      :style {:max-height "500px"}}]
-   (for [i (range board-width)
-         j (range board-height)]
+   (for [x (range board-width)
+         y (range board-height)]
      [:g
-      [rect-cell i j]
-      (if (some #{[i j]} (:stepped @app-state))
-        (if (= 1 (minefield [i j]))
-          [mine i j])
-        [covered i j])])))
+      [rect-cell x y]
+      (if (some #{[x y]} (:stepped @app-state))
+        (if (= 1 (minefield [x y]))
+          [mine x y]
+          [text-cell x y])
+        [covered x y])])))
 </code></pre>
 
 <pre><code class="language-reagent">
