@@ -38,12 +38,20 @@
   (r/atom
    {:matrix minefield
     :stepped []
-    :game-status :in-progress
-    :message "Tread lightly..."}))
+    :game-status :in-progress}))
+
+(defn win? []
+  (= num-mines
+     (-  (* board-height board-width)
+         (count (:stepped @app-state)))))
 
 (defn step! [x y]
   (swap! app-state assoc-in [:stepped]
-         (conj (:stepped @app-state) [x y])))
+         (conj (:stepped @app-state) [x y]))
+  (if (win?)
+    (swap! app-state assoc :game-status :win))
+  (if (= 1 ((:matrix @app-state) [x y]))
+         (swap! app-state assoc :game-status :dead)))
 
 (defn mine-detector [x y]
   (+ ((:matrix @app-state) [(dec x) (dec y)])
@@ -54,18 +62,6 @@
      ((:matrix @app-state) [x (inc y)])
      ((:matrix @app-state) [(dec x) (inc y)])
      ((:matrix @app-state) [(dec x) y])))
-
-(defn valid-square? [[x y]]
-  (and (<= 0 x (dec board-width))
-       (<= 0 y (dec board-width))))
-
-(defn filter-squares [[x y]]
-  (filter valid-square? (distinct (:stepped @app-state))))
-
-(defn win? []
-  (= num-mines
-     (-  (* board-height board-width)
-         (count (filter-squares (:stepped @app-state))))))
 
 (defn rect-cell [x y]
   [:rect.cell
@@ -104,13 +100,7 @@
     :on-click
     (fn click-square [e]
         (when (= (:game-status @app-state) :in-progress)
-        (step! x y)
-        (if (win?)
-          (do (swap! app-state assoc :game-status :win)
-            (swap! app-state assoc :message "Congratulations!")))
-        (if (= 1 (minefield [x y]))
-          (do (swap! app-state assoc :game-status :dead)
-            (swap! app-state assoc :message "Fuck. You blew up.")))))}])
+        (step! x y)))}])
 
 (defn render-board []
   (into
@@ -130,13 +120,17 @@
 
 (defn minesweeper []
   [:center
-   [:h1 (:message @app-state)]
+   [:h1 (cond (= (:game-status @app-state) :dead)
+          "Fuck. You blew up."
+          (= (:game-status @app-state) :win)
+          "Congratulations!"
+          :else
+          "Tread lightly...")]
    [:button
     {:on-click
      (fn reset-click [e]
        (swap! app-state assoc
               :matrix minefield
-              :message "Welcome back"
               :game-status :in-progress
               :stepped []))}
     "Reset"]
