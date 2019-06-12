@@ -21,9 +21,9 @@
 (def num-mines 18)
 
 (def squares
-   (for [x (range board-width)
-         y (range board-height)]
-     [x y]))
+  (for [x (range board-width)
+        y (range board-height)]
+    [x y]))
 
 (def mines
   (shuffle
@@ -50,7 +50,7 @@
   (if (win?)
     (swap! app-state assoc :game-status :win))
   (if (= 1 ((:matrix @app-state) [x y]))
-         (swap! app-state assoc :game-status :dead)))
+    (swap! app-state assoc :game-status :dead)))
 
 (defn mine-detector [x y]
   (+ ((:matrix @app-state) [(dec x) (dec y)])
@@ -61,6 +61,41 @@
      ((:matrix @app-state) [x (inc y)])
      ((:matrix @app-state) [(dec x) (inc y)])
      ((:matrix @app-state) [(dec x) y])))
+
+(defn valid-square? [[x y]]
+  (and (<= 0 x (dec board-width))
+             (<= 0 y (dec board-height))))
+
+(defn mine-count [[x y]]
+  (get (:matrix @app-state) [x y]))
+
+(defn mine? [x y]
+  (= 1 (mine-count [x y])))
+
+(defn clear? [[x y]]
+  (zero? (mine-detector x y)))
+
+(defn adjacents [[x y]]
+    (filter valid-square? 
+               #{ [(dec x) (dec y)]
+                  [x (dec y)]
+                  [x (inc y)]
+                  [(dec x) y]
+                  [(inc x) y] 
+                  [(inc x) (dec y)]
+                  [(inc x) (inc y)]
+                  [(dec x) (inc y)] }))
+
+(defn flood [exposed [x y]]
+  (if (some #{[x y]} exposed)
+    exposed
+    (let [new-exposed (conj exposed [x y])]
+      (if (or (mine? x y) (not (clear? [x y])))
+          new-exposed
+          (reduce flood new-exposed (adjacents [x y]))))))
+
+(defn update-board! [cell]
+    (swap! app-state assoc :stepped (flood (:stepped @app-state) cell)))
 
 (defn rect-cell [x y]
   [:rect.cell
@@ -98,7 +133,8 @@
     :y (+ 0.05 y)
     :on-click
     (fn click-square [e]
-        (when (= (:game-status @app-state) :in-progress)
+      (update-board! [x y])
+      (when (= (:game-status @app-state) :in-progress)
         (step! x y)))}])
 
 (defn render-board []
